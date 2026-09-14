@@ -62,12 +62,15 @@ def frontmatter_fields(text, where):
 
 
 def repo_root():
+    # Resolve from THIS FILE's location, never from the caller's CWD — otherwise running the viewer
+    # from inside some other git repo would silently list that repo's (empty) skills/ instead.
+    here = os.path.dirname(os.path.abspath(__file__))
     try:
-        out = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout
+        out = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=here, capture_output=True, text=True, check=True).stdout
         return out.strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         # fallback: this file lives at <root>/skills/skill-viewer/scripts/
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        return os.path.abspath(os.path.join(here, "..", "..", ".."))
 
 
 def main(argv=None):

@@ -45,7 +45,7 @@ opinions.
 **Locating the script — resolve it cwd-independently; never assume your cwd is the repo root.** A bare
 `consult.sh` or `relay-automation/consult.sh` only resolves when you happen to be sitting at the root,
 so invoke it through its repo-root anchor instead. Two homes are supported so consult works both in
-the `xyz-3-agents-swarm` checkout **and** in any repo that has a vendored `.xyz/` install: the
+the XYZ-forge (or XYZ mini) checkout **and** in any repo that has a vendored `.xyz/` install: the
 top-level `relay-automation/` if present, otherwise the vendored `.xyz/relay-automation/`.
 
 ```
@@ -60,7 +60,7 @@ CONSULT_ROOT="$ROOT" "$SCRIPT" --prompt "…" --label …
 
 `git rev-parse --show-toplevel` works from any subdirectory of the repo. If you are not inside a repo
 that has consult (no top-level `relay-automation/` and no `.xyz/`), either `cd` into the
-`xyz-3-agents-swarm` worktree, or vendor a `.xyz/` into the target repo first
+XYZ-forge/XYZ mini checkout, or (XYZ-forge only) vendor a `.xyz/` into the target repo first
 (`relay-automation/xyz-vendor.sh <repo>`). (Do **not** go hunting the disk for `consult.sh`; the
 anchor above always finds it.)
 
@@ -86,7 +86,7 @@ For native Claude, follow [subscription setup](https://github.com/HiQS-Labs/XYZ-
 built-in tools; relay reviews separately retain write access to their protocol file.
 
 Each run gets its own `<label>-<HHMMSS>/` subdir, so two consults the same day never overwrite each
-other. Behavior is covered by `test/consult.sh` in `validate.sh` (WIP preservation, no advisor leak,
+other. Behavior is covered by `test/consult.sh` in XYZ-forge's `validate.sh` (WIP preservation, no advisor leak,
 graceful degrade, non-git refusal).
 
 Exit `0` = at least one advisor answered; `5` = all failed; `3` = not a git repo (isolation needs
@@ -150,7 +150,7 @@ hunts overclaims and misses silent drops: the easy direction satisfices.)
 - **Needs the shims present, but is not tied to one repo.** Unlike `relay` (model-agnostic, file-only),
   consult hard-depends on the `codex` + `agy` CLIs being installed and authed and on the
   `relay-automation` shims. Those shims can live at the repo root **or** in a vendored `.xyz/` install,
-  so any repo carrying a `.xyz/` (see `relay-automation/xyz-vendor.sh`) can run consult standalone.
+  so any repo carrying a `.xyz/` (see `relay-automation/xyz-vendor.sh` in XYZ-forge) can run consult standalone.
 
 ## Gotcha: run consult OUTSIDE Claude Code's Bash sandbox
 

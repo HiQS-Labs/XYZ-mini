@@ -21,7 +21,7 @@ revision named in `.xyz-forge-revision`.
 | `honest` | A read-only maturity check that says what a repo actually does versus what it claims. |
 | `skill-viewer` | Lists the skills in this repo from their frontmatter. |
 
-Run `python3 skills/skill-viewer/scripts/list_skills.py` to see the live list.
+Run `python3 skills/skill-viewer/scripts/list_skills.py` from the repo root to see the live list.
 
 ## Install a skill
 
@@ -37,7 +37,7 @@ ln -s "$PWD/skills/relay" ~/.claude/skills/relay        # repeat per skill you w
 Claude Code, Codex and Gemini in one go:
 
 ```bash
-bash skills/consult/install.sh
+bash "$(git rev-parse --show-toplevel)/skills/consult/install.sh"
 ```
 
 ## Requirements
