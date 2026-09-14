@@ -68,13 +68,10 @@ anchor above always finds it.)
 **throwaway git worktree** checked out from your *current* state — tracked WIP (via `git stash create`)
 plus untracked-non-ignored files copied in — so they see your working state (minus `.gitignore`d
 files), including a brand-new file under
-review. Ordinary relative-path writes by an advisor land in that disposable worktree and are destroyed
-with it, so your checkout is not the advisors' default surface and there is normally nothing to revert.
-This is CWD isolation, not containment: the worktree shares the repository's Git object store, and an
-advisor CLI running with host permissions (agy is launched with `--dangerously-skip-permissions`) can
-still write to absolute paths or touch shared Git state if it ignores the advisory-only instruction.
-(Codex additionally runs `-s read-only`.) This replaced an earlier best-effort post-hoc revert that the
-skill's own first dogfood flagged as unsafe.
+review. Anything an advisor writes lands in that disposable worktree and is destroyed with it; your
+real working tree is **never** the advisors' surface, so there is nothing to revert and ambient WIP
+cannot be clobbered. (Codex additionally runs `-s read-only`.) This replaced an earlier best-effort
+post-hoc revert that the skill's own first dogfood flagged as unsafe.
 
 ```
 consult.sh --prompt-file Q.md            # question is the file's contents (may reference repo paths)
@@ -164,10 +161,9 @@ If you launch `consult.sh` from a Claude Code session, **disable the Bash sandbo
 - **Codex** — the sandbox blocks the macOS keychain (`no native root CA certificates found` / `No keychain is available`) and does not allowlist `chatgpt.com`.
 - **agy** — the sandbox blocks agy's backend network; `agy -p` exits 0 with **empty output** (the shim treats this as a hard failure, exit 5).
 
-The symptom is a two-sided `0 answered, 2 failed` degrade. Running consult outside the Bash sandbox
-removes the sandbox's restrictions for that run: consult's own protection is CWD isolation in a
-**throwaway worktree** (plus Codex's `-s read-only`), which keeps ordinary writes off your checkout but
-does not sandbox the advisor processes themselves. Decide accordingly.
+The symptom is a two-sided `0 answered, 2 failed` degrade. Disabling the sandbox here is safe:
+consult's isolation comes from its **throwaway worktree** (and Codex's own `-s read-only`), not from
+the Bash sandbox, so nothing is weakened.
 
 ## What success looks like
 
