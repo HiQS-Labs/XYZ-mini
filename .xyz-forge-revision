@@ -1,0 +1,5 @@
+source_repo=XYZ-forge
+source_sha=bab18b5bc8780fd0ae0237e3502d79777197e70f
+source_branch=feat/gh-589-xyz-mini-sync
+source_dirty=0
+publisher=utils/py/xyz_mini_sync.py
