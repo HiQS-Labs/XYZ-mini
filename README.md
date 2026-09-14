@@ -6,8 +6,8 @@ without a framework to learn first.
 XYZ mini is the beginner-sized sibling of [XYZ-forge](https://github.com/HiQS-Labs/XYZ-forge).
 The forge carries the full harness: marathons, release ledgers, governance docs, dozens of skills.
 Mini carries seven skills and a `TODO.md`. Everything here is published from the forge by a
-deterministic script, so a file you see here is byte-identical to its forge source at the
-revision named in `.xyz-forge-revision`.
+deterministic script, so every managed file (everything listed in `MANIFEST.txt`) is byte-identical
+to its forge source at the revision named in `.xyz-forge-revision`. `TODO.md` is yours.
 
 ## What is in the box
 
@@ -30,6 +30,7 @@ Each skill is a folder with a `SKILL.md`. Point your agent's skill directory at 
 ```bash
 git clone https://github.com/HiQS-Labs/XYZ-mini.git
 cd XYZ-mini
+mkdir -p ~/.claude/skills
 ln -s "$PWD/skills/relay" ~/.claude/skills/relay        # repeat per skill you want
 ```
 
@@ -43,8 +44,8 @@ bash "$(git rev-parse --show-toplevel)/skills/consult/install.sh"
 ## Requirements
 
 - `git`, `bash`, `python3` (3.8+)
-- For `consult`: the `codex` and/or `agy` CLIs on your `PATH`. Without them consult reports which
-  advisors were unavailable instead of failing.
+- For `consult`: the `codex` and/or `agy` CLIs on your `PATH`. If one advisor is unavailable consult
+  degrades to a single-model answer and says so; if none can answer it exits 5.
 - Nothing else. There is no `tick` binary, no database, no project lifecycle here.
 
 ## Try it

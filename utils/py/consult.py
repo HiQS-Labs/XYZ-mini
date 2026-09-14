@@ -192,6 +192,38 @@ def aider_answer_ok(out_path):
         return False
     return True
 
+def attach_stderr(out_path):
+    """GH-589: append the advisor's stderr sidecar to its transcript for the reader — after the
+    answered/failed judgement, so diagnostics stay visible but never count as an answer."""
+    side = out_path + ".stderr"
+    try:
+        with open(side, "r", errors="replace") as f:
+            diag = f.read()
+        if diag.strip():
+            with open(out_path, "a") as f:
+                f.write("\n\n--- advisor stderr (diagnostics, not part of the answer) ---\n" + diag)
+    except OSError:
+        pass
+
+def advisor_answer_ok(out_path, model):
+    """GH-589: exit 0 with no visible answer is a FAILURE, not an answer. Codex transcripts carry a
+    prepended ATTESTATION header, so strip that block before judging emptiness."""
+    try:
+        with open(out_path, "r", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return False
+    body = text
+    if body.startswith("> **ATTESTATION**"):
+        body = body.split("\n\n", 1)[1] if "\n\n" in body else ""
+    # codex's raw provenance lines (model:/provider:/sandbox:) are metadata, not an answer
+    body = "\n".join(l for l in body.splitlines() if not re.match(r"^(model|provider|sandbox):", l))
+    if not body.strip():
+        with open(out_path, "a") as f:
+            f.write(f"\nconsult: {model} returned no visible content (exit 0, empty answer) — counted as FAILED.\n")
+        return False
+    return True
+
 def consult_codex_attestation(out_path):
     # GH-308 port (consult.sh run_codex): prepend an ATTESTATION provenance header (which
     # model/provider/sandbox actually answered), parsed from the codex output. This lived only in the
@@ -200,8 +232,15 @@ def consult_codex_attestation(out_path):
         return
     model = provider = sandbox = "unknown"
     try:
-        with open(out_path, "r", errors="replace") as f:
-            for line in f:
+        # GH-589: the codex CLI may print its provenance lines on either stream; stderr now lives in a
+        # sidecar (see guarded_with_timeout separate_stderr), so parse both. Answer judgement is unaffected.
+        lines = []
+        for cand in (out_path, out_path + ".stderr"):
+            if os.path.isfile(cand):
+                with open(cand, "r", errors="replace") as f:
+                    lines.extend(f.readlines())
+        if True:
+            for line in lines:
                 if model == "unknown" and line.startswith("model:"):
                     model = line[len("model:"):].strip() or "unknown"
                 elif provider == "unknown" and line.startswith("provider:"):
@@ -237,9 +276,11 @@ def consult_agy_isolation_breach(out_path, root):
         pass
     return False
 
-def guarded_with_timeout(cmd, cwd, log_file, timeout_s, env=None, *, own_group=False):
+def guarded_with_timeout(cmd, cwd, log_file, timeout_s, env=None, *, own_group=False, separate_stderr=False):
+    # GH-589: codex/agy keep stderr in a sidecar so diagnostics never masquerade as an answer;
+    # the sidecar is appended to the transcript AFTER the answered/failed judgement (see attach_stderr).
     try:
-        with open(log_file, "w") as f, (open(log_file + ".stderr", "w") if own_group else nullcontext(subprocess.STDOUT)) as err:
+        with open(log_file, "w") as f, (open(log_file + ".stderr", "w") if (own_group or separate_stderr) else nullcontext(subprocess.STDOUT)) as err:
             proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=f, stderr=err, stdin=subprocess.DEVNULL, start_new_session=own_group)
             proc.xyz_own_group = own_group
             return proc
@@ -495,6 +536,7 @@ def main():
     if not out_dir:
         res = rtl._run_rtl(f"rtl_transcript_root {shlex.quote(root)}")
         if res.returncode != 0:
+            warn(f"transcript root resolution failed (bash bridge: relay-automation/relay-turn-lib.sh → rtl_transcript_root): {(res.stderr or '').strip() or 'no diagnostic'}")
             sys.exit(1)
         ts_base = res.stdout.strip()
         out_dir = os.path.join(ts_base, datetime.now().strftime("%Y-%m-%d"))
@@ -592,7 +634,7 @@ def main():
                 if os.environ.get("CODEX_ALLOW_API_KEY", "0") != "1":
                     cenv.pop("OPENAI_API_KEY", None)
                 cmd = [codex_bin, "exec"] + cflags + [full_prompt]
-                proc = guarded_with_timeout(cmd, wt, f_out, timeout_s, cenv)
+                proc = guarded_with_timeout(cmd, wt, f_out, timeout_s, cenv, separate_stderr=True)
                 procs.append((proc, "codex", f_out, time.time(), cmd))
             elif m == "agy":
                 f_out = os.path.join(run_dir, f"{label}.agy.md")
@@ -600,7 +642,7 @@ def main():
                     procs.append((None, "agy", f_out, time.time(), None))
                     continue
                 cmd = [agy_bin, "--dangerously-skip-permissions", "--print-timeout", f"{timeout_s}s", "-p", full_prompt]
-                proc = guarded_with_timeout(cmd, wt, f_out, timeout_s, dict(base_env))
+                proc = guarded_with_timeout(cmd, wt, f_out, timeout_s, dict(base_env), separate_stderr=True)
                 procs.append((proc, "agy", f_out, time.time(), cmd))
             elif m == "gemini":
                 ext = "json" if os.environ.get("CONSULT_GEMINI_JSON", "0") == "1" else "md"
@@ -715,7 +757,7 @@ def main():
                     failed += 1
                     summary += f"\n  [FAIL] {m} -> {out} (see transcript for error)"
                     results.append((m, out, False))
-                elif proc.returncode == 0 and (m != "aider" or aider_answer_ok(out)):
+                elif proc.returncode == 0 and (aider_answer_ok(out) if m == "aider" else advisor_answer_ok(out, m)):
                     answered += 1
                     summary += f"\n  [ok]   {m} -> {out}"
                     survivor_model = m
@@ -861,6 +903,11 @@ def main():
             shutil.rmtree(wt, ignore_errors=True)
             xyz_write_ops_log_append("rm force", f"rm -rf {wt}")
         
+    # GH-589: diagnostics are attached only now — after answer judgement, citation grading and
+    # provenance classification — so stderr never feeds any evidence decision.
+    for m, out, _ok in results:
+        if m in ("codex", "agy"):
+            attach_stderr(out)
     print(f"consult: {answered} answered, {failed} failed -> {run_dir}{summary}")
     if degraded:
         warn(f"SINGLE-MODEL — NOT RECONCILED (stamped into {survivor_out} and {os.path.join(run_dir, 'DEGRADED-SINGLE-MODEL.txt')})")

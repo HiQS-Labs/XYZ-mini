@@ -64,14 +64,17 @@ XYZ-forge/XYZ mini checkout, or (XYZ-forge only) vendor a `.xyz/` into the targe
 (`relay-automation/xyz-vendor.sh <repo>`). (Do **not** go hunting the disk for `consult.sh`; the
 anchor above always finds it.)
 
-**Provable no-mutation boundary (not best-effort).** Advisors run with their working directory set to a
+**Repository isolation (CWD-level, not a process sandbox).** Advisors run with their working directory set to a
 **throwaway git worktree** checked out from your *current* state — tracked WIP (via `git stash create`)
 plus untracked-non-ignored files copied in — so they see your working state (minus `.gitignore`d
 files), including a brand-new file under
-review. Anything an advisor writes lands in that disposable worktree and is destroyed with it; your
-real working tree is **never** the advisors' surface, so there is nothing to revert and ambient WIP
-cannot be clobbered. (Codex additionally runs `-s read-only`.) This replaced an earlier best-effort
-post-hoc revert that the skill's own first dogfood flagged as unsafe.
+review. Ordinary relative-path writes by an advisor land in that disposable worktree and are destroyed
+with it, so your checkout is not the advisors' default surface and there is normally nothing to revert.
+This is CWD isolation, not containment: the worktree shares the repository's Git object store, and an
+advisor CLI running with host permissions (agy is launched with `--dangerously-skip-permissions`) can
+still write to absolute paths or touch shared Git state if it ignores the advisory-only instruction.
+(Codex additionally runs `-s read-only`.) This replaced an earlier best-effort post-hoc revert that the
+skill's own first dogfood flagged as unsafe.
 
 ```
 consult.sh --prompt-file Q.md            # question is the file's contents (may reference repo paths)
@@ -136,9 +139,11 @@ hunts overclaims and misses silent drops: the easy direction satisfices.)
 - **Two models, not ground truth.** Cross-model agreement raises confidence; it does not prove
   correctness — both can share a blind spot or a wrong prior. Treat a unanimous answer as *strong
   signal*, not proof, especially when correctness rides on runtime behavior neither model ran.
-- **Repo-isolated, not process-sandboxed.** Advisors run in a throwaway worktree and cannot reach
-  your real tree, so a consult never changes your code even if an advisor ignores the "advisory only"
-  instruction. Be precise about the boundary: this protects your *repository*, not the *host process*.
+- **Repo-isolated, not process-sandboxed.** Advisors run in a throwaway worktree, so an advisor that
+  ignores the "advisory only" instruction edits the worktree, not your checkout. Be precise about the
+  boundary: the worktree shares the repository's Git object store and the advisor CLI runs with the
+  host's normal permissions (agy is launched with `--dangerously-skip-permissions`), so this protects
+  your *working tree*, not the *host* or *Git state*.
   Codex additionally runs `-s read-only`; agy runs with `--dangerously-skip-permissions` and is
   repo-isolated but not a sandboxed process (it can still reach the network / the host outside the
   worktree). For a hard process boundary, run consult inside your own sandbox. If a fix is needed,
@@ -159,9 +164,10 @@ If you launch `consult.sh` from a Claude Code session, **disable the Bash sandbo
 - **Codex** — the sandbox blocks the macOS keychain (`no native root CA certificates found` / `No keychain is available`) and does not allowlist `chatgpt.com`.
 - **agy** — the sandbox blocks agy's backend network; `agy -p` exits 0 with **empty output** (the shim treats this as a hard failure, exit 5).
 
-The symptom is a two-sided `0 answered, 2 failed` degrade. Disabling the sandbox here is safe:
-consult's isolation comes from its **throwaway worktree** (and Codex's own `-s read-only`), not from
-the Bash sandbox, so nothing is weakened.
+The symptom is a two-sided `0 answered, 2 failed` degrade. Running consult outside the Bash sandbox
+removes the sandbox's restrictions for that run: consult's own protection is CWD isolation in a
+**throwaway worktree** (plus Codex's `-s read-only`), which keeps ordinary writes off your checkout but
+does not sandbox the advisor processes themselves. Decide accordingly.
 
 ## What success looks like
 
