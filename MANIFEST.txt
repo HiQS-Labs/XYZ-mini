@@ -24,6 +24,8 @@ skills/relay/RELAY-sample.md
 skills/relay/SKILL.md
 skills/skill-viewer/SKILL.md
 skills/skill-viewer/scripts/list_skills.py
+skills/unstuck/SKILL.md
+skills/unstuck/agents/openai.yaml
 utils/py/claude_cli.py
 utils/py/consult.py
 utils/py/proc_group.py
