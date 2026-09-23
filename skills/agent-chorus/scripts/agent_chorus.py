@@ -82,7 +82,14 @@ def default_root() -> Path:
     override = os.environ.get("AGENT2AGENT_ROOT")
     if override:
         return Path(override).expanduser().resolve()
-    return Path(__file__).resolve().parents[3]
+    # GH-744: this file ships at skills/<tier>/agent-chorus/scripts/ (forge, vendored .xyz/) and at
+    # skills/agent-chorus/scripts/ (XYZ-mini, the standalone repo). The root is the nearest ancestor
+    # that holds skills/ — the same directory parents[3] gave in every flat layout, kept as fallback.
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "skills").is_dir():
+            return parent
+    return here.parents[3]
 
 
 def normalize_root(value: Optional[str]) -> Path:

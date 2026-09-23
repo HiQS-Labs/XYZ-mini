@@ -27,7 +27,7 @@ embeds the goal, scope, evidence, constraints, questions, and done condition as 
 From the repository root, run:
 
 ```bash
-bash skills/agent-chorus/install.sh
+bash skills/2-daily/agent-chorus/install.sh
 ```
 
 The idempotent installer symlinks this repo-backed skill into the standard skill directories for
@@ -39,7 +39,7 @@ version instead — or to install for one project only — copy the folder and r
 commit:
 
 ```bash
-cp -R skills/agent-chorus ~/.claude/skills/agent-chorus        # or <project>/.claude/skills/
+cp -R skills/2-daily/agent-chorus ~/.claude/skills/agent-chorus        # or <project>/.claude/skills/
 git rev-parse --short HEAD > ~/.claude/skills/agent-chorus/INSTALLED-FROM.txt
 ```
 
@@ -75,7 +75,7 @@ watch markers stay in the session's `runtime/` directory. Set `AGENT2AGENT_HOME`
 `--store` to select another private external location. Persist one user-level default with:
 
 ```bash
-"$(git rev-parse --show-toplevel)/skills/agent-chorus/scripts/agent_chorus.py" configure-store \
+"$(git rev-parse --show-toplevel)/skills/2-daily/agent-chorus/scripts/agent_chorus.py" configure-store \
   --path /private/path/to/Agent2Agent-Transcripts
 ```
 
@@ -102,7 +102,7 @@ The helper also makes four common long-running-discussion transitions explicit:
 Run the skill's dependency-free smoke suite from the repository root:
 
 ```bash
-bash skills/agent-chorus/test-standalone.sh
+bash skills/2-daily/agent-chorus/test-standalone.sh
 ```
 
 ## Publish the standalone distribution
@@ -112,9 +112,9 @@ repository, including its README, CI workflow, tests, metadata, and licenses. Pr
 then publish only from a clean committed canonical revision:
 
 ```bash
-bash skills/agent-chorus/sync-to-standalone.sh --preview
-bash skills/agent-chorus/sync-to-standalone.sh --apply
-bash skills/agent-chorus/sync-to-standalone.sh --check
+bash skills/2-daily/agent-chorus/sync-to-standalone.sh --preview
+bash skills/2-daily/agent-chorus/sync-to-standalone.sh --apply
+bash skills/2-daily/agent-chorus/sync-to-standalone.sh --check
 ```
 
 Set `AGENT2AGENT_STANDALONE_REPO` to select another checkout. The publisher refuses undeclared
@@ -123,5 +123,5 @@ the exact XYZ commit in `.xyz-canonical-revision`. Standalone changes never sync
 
 ## License
 
-- AgentChorus inherits this repository's default [GNU AGPL-3.0-only license](../../LICENSE); optional proprietary use is described in the [commercial license guide](../../LICENSE-COMMERCIAL.md).
+- AgentChorus inherits this repository's default [GNU AGPL-3.0-only license](https://github.com/HiQS-Labs/XYZ-forge/blob/development/LICENSE); optional proprietary use is described in the [commercial license guide](https://github.com/HiQS-Labs/XYZ-forge/blob/development/LICENSE-COMMERCIAL.md).
 - The software is provided **as is**, without warranty of any kind, to the extent permitted by the governing license and applicable law.
