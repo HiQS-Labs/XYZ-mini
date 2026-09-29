@@ -44,5 +44,9 @@ elif [ -e "$LINK" ]; then
   exit 1
 fi
 
+if [ -f "$SELF_DIR/scripts/planner_core.py" ]; then
+  chmod +x "$SELF_DIR/scripts/planner_core.py"
+fi
+
 ln -s "$SELF_DIR" "$LINK"
 echo "$SKILL_NAME: installed → $LINK -> $SELF_DIR"

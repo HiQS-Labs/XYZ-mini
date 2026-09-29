@@ -1,4 +1,4 @@
 source_repo=XYZ-forge
-source_sha=a47c212b3ce2cee400853386a3e7213182f7827d
-source_branch=HEAD
+source_sha=40f8a9b333d764f9d658392fc89e3e515599fec2
+source_branch=feat/gh-889-weekly-daily-planner-skills
 source_dirty=0
