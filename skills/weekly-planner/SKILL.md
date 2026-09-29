@@ -20,7 +20,7 @@ Orchestrate weekly sprint alignment and daily task execution across team members
 ## Core Northstars
 
 1. **Adversarial Audit on Both Horizons (Weekly & Daily):**
-   - Every weekly plan and every daily pivot must undergo a 2nd-pass adversarial review (spawned subagent, or `/relay-xyz` / `/consult` fallback in environments without subagents).
+   - Every weekly plan and every daily pivot must undergo a 2nd-pass adversarial review (spawned subagent, or `/relay` / `/consult` fallback in environments without subagents).
    - Catches:
      - **Task Duplication:** Multiple PRs or issues solving the same root bug under different names.
      - **Contradictions & Merge Collisions:** Parallel branches editing shared files (`CHANGELOG.md`, database migrations, core configuration) without topological ordering.
@@ -107,7 +107,7 @@ In environments without subagents, invoke `/relay` or `/consult --models codex,a
 - *Check 4: Merge Friction.* Are multiple PRs modifying `CHANGELOG.md` simultaneously? (Mitigate by enforcing single-file rebase at merge time).
 
 ### Step 5: Deliver Output & Calibrate
-1. Generate the light weekly outline and save to `temp/planner/WEEKLY-PLAN-<date>.md`.
+1. Generate the light weekly outline and save to `temp/planner/weekly-plan-<date>.md`.
 2. Present the plan grouped by teammate, highlighting:
    - **Immediate P0 Blockers** at the top.
    - **Merge sequence roadmap**.
