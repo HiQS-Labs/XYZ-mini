@@ -16,6 +16,8 @@ skills/agent-chorus/scripts/agent_chorus_bridge.py
 skills/agent-chorus/scripts/agent_chorus_client.py
 skills/consult/SKILL.md
 skills/consult/install.sh
+skills/daily-planner/SKILL.md
+skills/daily-planner/install.sh
 skills/debug-mantra/SKILL.md
 skills/honest/SKILL.md
 skills/ponytail/SKILL.md
@@ -26,6 +28,9 @@ skills/skill-viewer/SKILL.md
 skills/skill-viewer/scripts/list_skills.py
 skills/unstuck/SKILL.md
 skills/unstuck/agents/openai.yaml
+skills/weekly-planner/SKILL.md
+skills/weekly-planner/install.sh
+skills/weekly-planner/scripts/planner_core.py
 utils/py/claude_cli.py
 utils/py/consult.py
 utils/py/proc_group.py
