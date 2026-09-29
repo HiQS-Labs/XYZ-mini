@@ -11,7 +11,7 @@ description: >-
 
 Adapts the active weekly plan based on yesterday's progress, landed PRs, and newly emerged blockers.
 
-**Drift Prevention Contract:** This skill does NOT duplicate planning heuristics or merge algorithms. It directly executes the shared core engine at `skills/weekly-planner/scripts/planner_core.py` (or `skills/3-weekly/weekly-planner/scripts/planner_core.py` in XYZ Forge) to ensure that daily tactical decisions remain 100% coherent with the weekly trajectory.
+**Drift Prevention Contract:** This skill does NOT duplicate planning heuristics or merge algorithms. It directly executes the shared core engine at `skills/weekly-planner/scripts/planner_core.py` to ensure that daily tactical decisions remain 100% coherent with the weekly trajectory.
 
 ---
 

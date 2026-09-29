@@ -28,13 +28,13 @@ Orchestrate weekly sprint alignment and daily task execution across team members
      - **Stale Assumptions:** Features scheduled against unmerged base branches.
 2. **The Provisional Decision Protocol (Zero External Stalls):**
    - **Never write "Waiting for [Stakeholder] to decide" as a plan item or blocker.**
-   - All unresolved business/product decisions are captured as **Deferred Provisional Decision Points** on the canonical tracking issue (e.g. [#202](https://github.com/BinoidCBD/LTVera-Pandas/issues/202)).
+   - All unresolved business/product decisions are captured as **Deferred Provisional Decision Points** on the canonical tracking issue (e.g. #202 or the repo's decisions tracker).
    - If no decisions tracker exists, the skill requests permission to create a canonical GitHub issue to track and record all decisions.
    - Code against an explicit, recorded provisional default value, and deliver a UI setting control + backend "Re-compute" trigger button so stakeholders can adjust values post-merge.
 3. **High-Value Blocker Prioritization:**
    - The top item in an operator's queue is strictly whatever **currently blocks another team member or gates the weekly milestone**.
 4. **Dual Ingestion (PRS/PDDA Native with Fallback):**
-   - **Mode A (Native XYZ):** Ingests PRS 4-axis ratings (`pri/sev/appeal/effort`, `calc` sum, `ovr` overrides) directly from `releases.db` and active docs from `PROJECT/`.
+   - **Mode A (Native XYZ):** Ingests PRS 4-axis ratings (`pri/sev/appeal/effort`, `calc` sum, `ovr` overrides) directly from `releases.db` and active docs from `PROJECT/` (when available).
    - **Mode B (Zero-Dependency Fallback):** Ingests open issues via `gh issue list`, executing a 2–3 pass scratch markdown process in `temp/planner/` to triage and sharpen tasks.
 5. **Shared Core Engine Architecture (Zero Skill Drift):**
    - The weekly planner owns the primary data models, merge-sequencer, and adversarial checks in `scripts/planner_core.py`.
@@ -57,15 +57,15 @@ skills/weekly-planner/
 ## Step-by-Step Execution Workflow
 
 ### Step 0: Preflight & Isolated Scratch Verification
-1. Verify repo root and ensure `<repo_root>/temp/` exists and is gitignored (`.gitignore`).
-   - If `temp/` does not exist, ask user permission to create it.
+1. Verify repo root and ensure `<repo_root>/temp/` is gitignored (`.gitignore`).
+   - The script automatically provisions and validates `<repo_root>/temp/planner/`.
 2. Scratch artifacts and triage files MUST be written into `temp/planner/`, never the repo root.
 
 ### Step 1: Ingest Signals & Team Weekly Plan
 1. Identify the **Team Weekly Plan GitHub Issue** (via `--issue <N>` or search):
    - Ingest team member domain assignments (e.g. Jose -> Data/Pipeline, Matthew -> NexMail/Calendar, Noel -> Orchestration/Gate).
 2. Signal Ingestion:
-   - **If `releases.db` exists:** Query calculated scores via `python3 utils/py/releases_app.py roadmap list --json`.
+   - **If `releases.db` exists:** Query calculated scores via `python3 utils/py/releases_app.py roadmap list --json` (in repositories with the releases app).
    - **If Fallback Mode:** Ingest active GH issues and generate `temp/planner/pass1-intake.md` and `temp/planner/pass2-sharpened.md`.
 
 ### Step 2: Establish the Topological Merge Sequence
@@ -99,8 +99,8 @@ Run the adversarial engine:
 ```bash
 python3 skills/weekly-planner/scripts/planner_core.py --repo-root . --mode audit
 ```
-If subagents are enabled, invoke an independent subagent (`invoke_subagent` with role `Plan Auditor`).
-In environments where subagents cannot be spawned, invoke `/relay-xyz` or `/consult --models codex,agy` to challenge the plan:
+If subagents are enabled, invoke an independent subagent with role `Plan Auditor`.
+In environments without subagents, invoke `/relay` or `/consult --models codex,agy` to challenge the plan:
 - *Check 1: Duplication.* Are two PRs fixing the same issue or touching the same reset logic?
 - *Check 2: Contradictions.* Will landing PR A break PR B's tests or assumptions?
 - *Check 3: Concurrency Hazards.* Will running a backfill script collide with active rolling reconcilers?
@@ -120,7 +120,7 @@ In environments where subagents cannot be spawned, invoke `/relay-xyz` or `/cons
 
 The companion `daily-planner` skill relies on `planner_core.py` to pivot the active weekly plan:
 ```bash
-python3 skills/weekly-planner/scripts/planner_core.py --repo-root . --mode daily --plan-file temp/planner/WEEKLY-PLAN-<date>.json
+python3 skills/weekly-planner/scripts/planner_core.py --repo-root . --mode daily --plan-file temp/planner/weekly-plan-<date>.json
 ```
 1. Queries what merged and closed in the last 24 hours.
 2. Marks completed items `[DONE]`.

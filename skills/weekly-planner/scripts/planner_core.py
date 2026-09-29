@@ -13,11 +13,10 @@ Provides:
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -39,7 +38,11 @@ def ensure_temp_dir(repo_root: Path) -> Path:
     """Ensure repo has an isolated, gitignored temp directory."""
     temp_dir = repo_root / "temp"
     planner_temp = temp_dir / "planner"
-    planner_temp.mkdir(parents=True, exist_ok=True)
+    try:
+        planner_temp.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        print(f"[ERROR] Failed to create temp directory {planner_temp}: {e}", file=sys.stderr)
+        sys.exit(2)
 
     # Check gitignore
     gitignore = repo_root / ".gitignore"
@@ -130,7 +133,7 @@ def audit_adversarial(plan: dict) -> dict:
         })
 
     # 3. Data pipeline vs Reconciler concurrency check
-    has_backfill = any("backfill" in (pr.get("title", "") + pr.get("headRefName", "")).lower() for pr in prs)
+    has_backfill = any("backfill" in ((pr.get("title") or "") + (pr.get("headRefName") or "")).lower() for pr in prs)
     if has_backfill:
         findings.append({
             "severity": "HIGH",
@@ -144,30 +147,59 @@ def audit_adversarial(plan: dict) -> dict:
     }
 
 
-def pivot_daily(weekly_plan_file: Path, repo_root: Path, gh_repo: str = None) -> dict:
+def pivot_daily(weekly_plan_file: Path = None, repo_root: Path = None, gh_repo: str = None) -> dict:
     """
     Generate daily plan pivot by checking what merged/closed in the last 24h.
     """
+    baseline_plan = None
+    if weekly_plan_file:
+        if not weekly_plan_file.exists():
+            print(f"[WARN] Weekly baseline plan file not found: {weekly_plan_file}", file=sys.stderr)
+        else:
+            try:
+                baseline_plan = json.loads(weekly_plan_file.read_text(encoding="utf-8"))
+            except Exception as e:
+                print(f"[WARN] Could not parse weekly plan file {weekly_plan_file}: {e}", file=sys.stderr)
+
     # Fetch recent merged PRs (last 24-36 hours)
-    cmd = [
+    cmd_prs = [
         "gh", "pr", "list",
         "--state", "merged",
         "--limit", "15",
         "--json", "number,title,mergedAt,headRefName"
     ]
     if gh_repo:
-        cmd.extend(["-R", gh_repo])
+        cmd_prs.extend(["-R", gh_repo])
     
     merged_prs = []
     try:
-        out = run_cmd(cmd, cwd=repo_root)
+        out = run_cmd(cmd_prs, cwd=repo_root)
         merged_prs = json.loads(out) if out else []
     except Exception as e:
         print(f"[WARN] Failed to fetch merged PRs: {e}", file=sys.stderr)
 
+    # Fetch recent closed issues (last 24-36 hours)
+    cmd_issues = [
+        "gh", "issue", "list",
+        "--state", "closed",
+        "--limit", "15",
+        "--json", "number,title,closedAt"
+    ]
+    if gh_repo:
+        cmd_issues.extend(["-R", gh_repo])
+
+    closed_issues = []
+    try:
+        out = run_cmd(cmd_issues, cwd=repo_root)
+        closed_issues = json.loads(out) if out else []
+    except Exception as e:
+        print(f"[WARN] Failed to fetch closed issues: {e}", file=sys.stderr)
+
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "weekly_baseline_loaded": baseline_plan is not None,
         "recent_merges": merged_prs,
+        "recent_closed_issues": closed_issues,
     }
 
 
@@ -178,10 +210,13 @@ def main():
     parser.add_argument("--mode", choices=["weekly", "daily", "audit", "sequence"], default="weekly")
     parser.add_argument("--plan-file", help="Path to existing weekly plan JSON/MD")
     parser.add_argument("--decisions-issue", help="Canonical GH issue number for provisional decisions tracker")
+    parser.add_argument("--issue", help="Team weekly plan GitHub issue number or URL")
 
     args = parser.parse_args()
     repo_root = Path(args.repo_root).resolve()
-    temp_dir = ensure_temp_dir(repo_root)
+    if not repo_root.is_dir():
+        print(f"[ERROR] repo root not found: {repo_root}", file=sys.stderr)
+        sys.exit(2)
 
     prs = get_open_prs(repo_root, args.gh_repo)
     sequence = detect_merge_sequence(prs)
@@ -194,6 +229,8 @@ def main():
         audit = audit_adversarial({"prs": prs})
         print(json.dumps(audit, indent=2))
         return
+
+    temp_dir = ensure_temp_dir(repo_root)
 
     if args.mode == "daily":
         pivot = pivot_daily(Path(args.plan_file) if args.plan_file else None, repo_root, args.gh_repo)
@@ -217,6 +254,7 @@ def main():
         "merge_sequence": sequence,
         "adversarial_audit": audit,
         "decisions_issue": args.decisions_issue or "NONE_SET",
+        "weekly_issue": args.issue or "NONE_SET",
     }
     out_file = temp_dir / f"weekly-plan-{datetime.now().strftime('%Y%m%d')}.json"
     out_file.write_text(json.dumps(result, indent=2), encoding="utf-8")
