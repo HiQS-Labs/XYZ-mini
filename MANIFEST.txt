@@ -24,6 +24,8 @@ skills/ponytail/SKILL.md
 skills/ponytail/install.sh
 skills/relay/RELAY-sample.md
 skills/relay/SKILL.md
+skills/review-code/SKILL.md
+skills/review-code/install.sh
 skills/skill-viewer/SKILL.md
 skills/skill-viewer/scripts/list_skills.py
 skills/unstuck/SKILL.md
